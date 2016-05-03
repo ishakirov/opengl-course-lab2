@@ -16,6 +16,7 @@ GLFWwindow* window;
 
 #include "shader.hpp"
 #include "object.hpp"
+#include "controls.hpp"
 
 int main(int argc, char* argv[])
 {
@@ -64,15 +65,6 @@ int main(int argc, char* argv[])
 	GLuint vertexNormal_modelspaceID = glGetAttribLocation(programID, "vertexNormal_modelspace");
 	GLuint LightID = glGetUniformLocation(programID, "LightPosition_worldspace");
 
-	glm::mat4 Projection = glm::perspective(45.0f, 4.0f / 3.0f, 0.1f, 100.0f);
-	glm::mat4 View       = glm::lookAt(
-		glm::vec3(4,3,3), 	// Camera is at (4,3,-3), in World Space
-		glm::vec3(0,0,0), 	// and looks at the origin
-		glm::vec3(0,1,0)  	// Head is up (set to 0,-1,0 to look upside-down)
-	);
-	glm::mat4 Model      = glm::mat4(1.0f);
-	glm::mat4 MVP        = Projection * View * Model;
-
 	// Loading obj-model
 	std::vector<glm::vec3> vertices = std::vector<glm::vec3>();
   std::vector<glm::vec2> uvs = std::vector<glm::vec2>();
@@ -99,6 +91,12 @@ int main(int argc, char* argv[])
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		// Use our shader
     glUseProgram(programID);
+
+		computeMatricesFromInputs();
+		glm::mat4 Projection = getProjectionMatrix();
+		glm::mat4 View       = getViewMatrix();
+		glm::mat4 Model      = glm::mat4(1.0f);
+		glm::mat4 MVP        = Projection * View * Model;
 
 		glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &MVP[0][0]);
 		glUniformMatrix4fv(ModelMatrixID, 1, GL_FALSE, &Model[0][0]);
