@@ -17,6 +17,7 @@ GLFWwindow* window;
 #include "shader.hpp"
 #include "object.hpp"
 #include "controls.hpp"
+#include "texture.hpp"
 
 int main(int argc, char* argv[])
 {
@@ -87,6 +88,14 @@ int main(int argc, char* argv[])
   glBindBuffer(GL_ARRAY_BUFFER, normalbuffer);
   glBufferData(GL_ARRAY_BUFFER, normals.size() * sizeof(glm::vec3), &normals[0], GL_STATIC_DRAW);
 
+	GLuint Texture = -1;
+	GLuint TextureID  = -1;
+	if (argc > 2) {
+		std::string path(argv[2]);
+		GLuint Texture = loadDDS("uvmap.DDS");
+		GLuint TextureID  = glGetUniformLocation(programID, "myTextureSampler");
+	}
+
 	do {
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		// Use our shader
@@ -104,6 +113,14 @@ int main(int argc, char* argv[])
 
 		glm::vec3 lightPos = glm::vec3(4,4,4);
 		glUniform3f(LightID, lightPos.x, lightPos.y, lightPos.z);
+
+		// Bind our texture in Texture Unit 0
+		if (Texture != -1) {
+			glActiveTexture(GL_TEXTURE0);
+			glBindTexture(GL_TEXTURE_2D, Texture);
+			// Set our "myTextureSampler" sampler to user Texture Unit 0
+			glUniform1i(TextureID, 0);
+		}
 
 		// attribute buffer : vertices
 		glEnableVertexAttribArray(vertexPosition_modelspaceID);

@@ -16,7 +16,7 @@ void main() {
   vec3 LightColor = vec3(1, 1, 1);
 	float LightPower = 50.0f;
 
-  vec3 MaterialDiffuseColor = vec3(1.0, 1.0, 0.0);
+  vec3 MaterialDiffuseColor = texture2D( myTextureSampler, UV ).rgb;
 	vec3 MaterialAmbientColor = vec3(0.1,0.1,0.1) * MaterialDiffuseColor;
 	vec3 MaterialSpecularColor = vec3(0.3,0.3,0.3);
 
@@ -39,4 +39,8 @@ void main() {
 		MaterialDiffuseColor * LightColor * LightPower * cosTheta / (distance*distance) +
 		// Specular : reflective highlight, like a mirror
 		MaterialSpecularColor * LightColor * LightPower * pow(cosAlpha,5) / (distance*distance);
+
+  // luminosity
+  float bw = 0.21 * gl_FragColor.x + 0.72 * gl_FragColor.y + 0.07 * gl_FragColor.z;
+  gl_FragColor = vec4(bw, bw, bw, 1);
 }
