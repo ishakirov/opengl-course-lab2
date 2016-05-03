@@ -12,11 +12,16 @@ endif()
 add_subdirectory(lib/glfw)
 include_directories(lib/glfw/include)
 
-add_executable(main
-  src/main.cpp
-  src/shader.hpp
-  src/shader.cpp
+# glm
+add_subdirectory(lib/glm)
+include_directories(lib/glm)
+
+file(GLOB SRC_DIR
+    "src/*.hpp"
+    "src/*.cpp"
 )
+
+add_executable(main ${SRC_DIR})
 target_link_libraries(main glfw ${GLFW_LIBRARIES} ${OPENGL_LIBRARY} ${GLEW_LIBRARY})
 
 # copy shaders dir

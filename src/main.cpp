@@ -1,6 +1,8 @@
 // Include standard headers
 #include <stdio.h>
 #include <stdlib.h>
+#include <string>
+#include <vector>
 
 // Include GLEW
 #include <GL/glew.h>
@@ -9,14 +11,16 @@
 #include <GLFW/glfw3.h>
 GLFWwindow* window;
 
-#include "shader.hpp"
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 
-int main( void )
+#include "shader.hpp"
+#include "object.hpp"
+
+int main(int argc, char* argv[])
 {
-	// Initialise GLFW
-	if( !glfwInit() )
-	{
-		fprintf( stderr, "Failed to initialize GLFW\n" );
+	if(!glfwInit()) {
+		fprintf(stderr, "Failed to initialize GLFW\n");
 		return -1;
 	}
 
@@ -24,17 +28,16 @@ int main( void )
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 2);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
 
-
 	// Open a window and create its OpenGL context
-	window = glfwCreateWindow( 1024, 768, "Tutorial 02 - Red triangle", NULL, NULL);
-	if( window == NULL ){
-		fprintf( stderr, "Failed to open GLFW window. If you have an Intel GPU, they are not 3.3 compatible. Try the 2.1 version of the tutorials.\n" );
+	window = glfwCreateWindow( 1024, 768, "OpenGL Sample", NULL, NULL);
+	if (window == NULL) {
+		fprintf(stderr, "Failed to open GLFW window. If you have an Intel GPU, they are not 3.3 compatible. Try the 2.1 version of the tutorials.\n");
 		glfwTerminate();
 		return -1;
 	}
+
 	glfwMakeContextCurrent(window);
 
-	// Initialize GLEW
 	if (glewInit() != GLEW_OK) {
 		fprintf(stderr, "Failed to initialize GLEW\n");
 		return -1;
@@ -46,58 +49,112 @@ int main( void )
 	// Dark blue background
 	glClearColor(0.0f, 0.0f, 0.4f, 0.0f);
 
+	glEnable(GL_DEPTH_TEST);
+	glDepthFunc(GL_LESS);
+
 	// Create and compile our GLSL program from the shaders
-	GLuint programID = LoadShaders( "shaders/vertex.glsl", "shaders/fragment.glsl" );
+	GLuint programID = LoadShaders("shaders/vertex.glsl", "shaders/fragment.glsl");
 
 	// Get a handle for our buffers
+	GLuint MatrixID = glGetUniformLocation(programID, "MVP");
+	GLuint ViewMatrixID = glGetUniformLocation(programID, "V");
+	GLuint ModelMatrixID = glGetUniformLocation(programID, "M");
 	GLuint vertexPosition_modelspaceID = glGetAttribLocation(programID, "vertexPosition_modelspace");
+	GLuint vertexUVID = glGetAttribLocation(programID, "vertexUV");
+	GLuint vertexNormal_modelspaceID = glGetAttribLocation(programID, "vertexNormal_modelspace");
+	GLuint LightID = glGetUniformLocation(programID, "LightPosition_worldspace");
 
-    // x,y,z,r,g,b
-	static const GLfloat g_vertex_buffer_data[] = {
-		-1.0f, -1.0f, 0.0f, 1.0f, 0.0f, 0.0f,
-		 1.0f, -1.0f, 0.0f, 0.0f, 1.0f, 0.0f,
-		 0.0f,  1.0f, 0.0f, 0.0f, 0.0f, 1.0f,
-	};
+	glm::mat4 Projection = glm::perspective(45.0f, 4.0f / 3.0f, 0.1f, 100.0f);
+	glm::mat4 View       = glm::lookAt(
+		glm::vec3(4,3,3), 	// Camera is at (4,3,-3), in World Space
+		glm::vec3(0,0,0), 	// and looks at the origin
+		glm::vec3(0,1,0)  	// Head is up (set to 0,-1,0 to look upside-down)
+	);
+	glm::mat4 Model      = glm::mat4(1.0f);
+	glm::mat4 MVP        = Projection * View * Model;
+
+	// Loading obj-model
+	std::vector<glm::vec3> vertices = std::vector<glm::vec3>();
+  std::vector<glm::vec2> uvs = std::vector<glm::vec2>();
+  std::vector<glm::vec3> normals = std::vector<glm::vec3>();
+	std::string path(argv[1]);
+	parseObj(path, vertices, uvs, normals);
 
 	GLuint vertexbuffer;
 	glGenBuffers(1, &vertexbuffer);
 	glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(g_vertex_buffer_data), g_vertex_buffer_data, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(glm::vec3), &vertices[0], GL_STATIC_DRAW);
 
-	do{
+	GLuint uvbuffer;
+	glGenBuffers(1, &uvbuffer);
+	glBindBuffer(GL_ARRAY_BUFFER, uvbuffer);
+	glBufferData(GL_ARRAY_BUFFER, uvs.size() * sizeof(glm::vec2), &uvs[0], GL_STATIC_DRAW);
 
-		// Clear the screen
-		glClear( GL_COLOR_BUFFER_BIT );
+	GLuint normalbuffer;
+  glGenBuffers(1, &normalbuffer);
+  glBindBuffer(GL_ARRAY_BUFFER, normalbuffer);
+  glBufferData(GL_ARRAY_BUFFER, normals.size() * sizeof(glm::vec3), &normals[0], GL_STATIC_DRAW);
 
+	do {
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		// Use our shader
-        glUseProgram(programID);
+    glUseProgram(programID);
 
-		// 1rst attribute buffer : vertices
+		glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &MVP[0][0]);
+		glUniformMatrix4fv(ModelMatrixID, 1, GL_FALSE, &Model[0][0]);
+		glUniformMatrix4fv(ViewMatrixID, 1, GL_FALSE, &View[0][0]);
+
+		glm::vec3 lightPos = glm::vec3(4,4,4);
+		glUniform3f(LightID, lightPos.x, lightPos.y, lightPos.z);
+
+		// attribute buffer : vertices
 		glEnableVertexAttribArray(vertexPosition_modelspaceID);
-
 		glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
 		glVertexAttribPointer(
-			vertexPosition_modelspaceID, // The attribute we want to configure
-			3,                  // size
-			GL_FLOAT,           // type
-			GL_FALSE,           // normalized?
-			6 * sizeof(GL_FLOAT),// stride
-			(void*)0            // array buffer offset
+			vertexPosition_modelspaceID, 	// The attribute we want to configure
+			3,                  					// size
+			GL_FLOAT,           					// type
+			GL_FALSE,           					// normalized?
+			0,														// stride
+			(void*)0            					// array buffer offset
 		);
 
-		// Draw the triangle !
-		glDrawArrays(GL_TRIANGLES, 0, 3); // 3 indices starting at 0 -> 1 triangle
+		// UVs
+		glEnableVertexAttribArray(vertexUVID);
+		glBindBuffer(GL_ARRAY_BUFFER, uvbuffer);
+		glVertexAttribPointer(
+			vertexUVID,                   // The attribute we want to configure
+			2,                            // size : U+V => 2
+			GL_FLOAT,                     // type
+			GL_FALSE,                     // normalized?
+			0,                            // stride
+			(void*)0                      // array buffer offset
+		);
+
+		// normals
+		glEnableVertexAttribArray(vertexNormal_modelspaceID);
+		glBindBuffer(GL_ARRAY_BUFFER, normalbuffer);
+		glVertexAttribPointer(
+			vertexNormal_modelspaceID,    // The attribute we want to configure
+			3,                            // size
+			GL_FLOAT,                     // type
+			GL_FALSE,                     // normalized?
+			0,                            // stride
+			(void*)0                      // array buffer offset
+		);
+
+		// Draw the triangles
+		glDrawArrays(GL_TRIANGLES, 0, vertices.size());
 
 		glDisableVertexAttribArray(vertexPosition_modelspaceID);
+		glDisableVertexAttribArray(vertexUVID);
+		glDisableVertexAttribArray(vertexNormal_modelspaceID);
 
 		// Swap buffers
 		glfwSwapBuffers(window);
 		glfwPollEvents();
 
-	} // Check if the ESC key was pressed or the window was closed
-	while( glfwGetKey(window, GLFW_KEY_ESCAPE ) != GLFW_PRESS &&
-		   glfwWindowShouldClose(window) == 0 );
-
+	} while (glfwGetKey(window, GLFW_KEY_ESCAPE ) != GLFW_PRESS && glfwWindowShouldClose(window) == 0);
 
 	// Cleanup VBO
 	glDeleteBuffers(1, &vertexbuffer);
