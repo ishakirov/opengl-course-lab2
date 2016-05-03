@@ -15,9 +15,62 @@ GLFWwindow* window;
 #include <glm/gtc/matrix_transform.hpp>
 
 #include "shader.hpp"
-#include "object.hpp"
 #include "controls.hpp"
-#include "texture.hpp"
+
+std::vector<glm::vec3> getCube(glm::vec3 offset) {
+	std::vector<glm::vec3> re;
+	GLfloat g_vertex_buffer_data[] = {
+		-0.125f,-0.125f,-0.125f,
+		-0.125f,-0.125f, 0.125f,
+		-0.125f, 0.125f, 0.125f,
+		 0.125f, 0.125f,-0.125f,
+		-0.125f,-0.125f,-0.125f,
+		-0.125f, 0.125f,-0.125f,
+		 0.125f,-0.125f, 0.125f,
+		-0.125f,-0.125f,-0.125f,
+		 0.125f,-0.125f,-0.125f,
+		 0.125f, 0.125f,-0.125f,
+		 0.125f,-0.125f,-0.125f,
+		-0.125f,-0.125f,-0.125f,
+		-0.125f,-0.125f,-0.125f,
+		-0.125f, 0.125f, 0.125f,
+		-0.125f, 0.125f,-0.125f,
+		 0.125f,-0.125f, 0.125f,
+		-0.125f,-0.125f, 0.125f,
+		-0.125f,-0.125f,-0.125f,
+		-0.125f, 0.125f, 0.125f,
+		-0.125f,-0.125f, 0.125f,
+		 0.125f,-0.125f, 0.125f,
+		 0.125f, 0.125f, 0.125f,
+		 0.125f,-0.125f,-0.125f,
+		 0.125f, 0.125f,-0.125f,
+		 0.125f,-0.125f,-0.125f,
+		 0.125f, 0.125f, 0.125f,
+		 0.125f,-0.125f, 0.125f,
+		 0.125f, 0.125f, 0.125f,
+		 0.125f, 0.125f,-0.125f,
+		-0.125f, 0.125f,-0.125f,
+		 0.125f, 0.125f, 0.125f,
+		-0.125f, 0.125f,-0.125f,
+		-0.125f, 0.125f, 0.125f,
+		 0.125f, 0.125f, 0.125f,
+		-0.125f, 0.125f, 0.125f,
+		 0.125f,-0.125f, 0.125f
+	};
+	for (int i = 0; i < 12*3*3; i += 3) {
+			re.push_back(glm::vec3(g_vertex_buffer_data[i], g_vertex_buffer_data[i+1], g_vertex_buffer_data[i+2]));
+	}
+	for (int i = 0; i < re.size(); i++) {
+		re[i] += offset;
+	}
+
+	return re;
+}
+
+std::vector<glm::vec3> getColorForCube(glm::vec3 color) {
+	std::vector<glm::vec3> re (36, color);
+	return re;
+}
 
 int main(int argc, char* argv[])
 {
@@ -54,6 +107,9 @@ int main(int argc, char* argv[])
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LESS);
 
+	glEnable(GL_CULL_FACE); // ????????????????????????????????????????????????
+
+
 	// Create and compile our GLSL program from the shaders
 	GLuint programID = LoadShaders("shaders/vertex.glsl", "shaders/fragment.glsl");
 
@@ -62,39 +118,133 @@ int main(int argc, char* argv[])
 	GLuint ViewMatrixID = glGetUniformLocation(programID, "V");
 	GLuint ModelMatrixID = glGetUniformLocation(programID, "M");
 	GLuint vertexPosition_modelspaceID = glGetAttribLocation(programID, "vertexPosition_modelspace");
-	GLuint vertexUVID = glGetAttribLocation(programID, "vertexUV");
-	GLuint vertexNormal_modelspaceID = glGetAttribLocation(programID, "vertexNormal_modelspace");
-	GLuint LightID = glGetUniformLocation(programID, "LightPosition_worldspace");
+	GLuint colorID = glGetAttribLocation(programID, "a_color");
 
-	// Loading obj-model
-	std::vector<glm::vec3> vertices = std::vector<glm::vec3>();
-  std::vector<glm::vec2> uvs = std::vector<glm::vec2>();
-  std::vector<glm::vec3> normals = std::vector<glm::vec3>();
-	std::string path(argv[1]);
-	parseObj(path, vertices, uvs, normals);
+	std::vector<glm::vec3> vertices;
+	std::vector<glm::vec3> colors;
+
+	std::vector<glm::vec3> tmp = getCube(glm::vec3(0.0, 0.0, 0.0));
+	vertices.insert(vertices.end(), tmp.begin(), tmp.end());
+	tmp = getCube(glm::vec3(0.875, 0.0, 0.0));
+	vertices.insert(vertices.end(), tmp.begin(), tmp.end());
+	tmp = getCube(glm::vec3(0.0, 0.875, 0.0));
+	vertices.insert(vertices.end(), tmp.begin(), tmp.end());
+	tmp = getCube(glm::vec3(0.0, 0.0, 0.875));
+	vertices.insert(vertices.end(), tmp.begin(), tmp.end());
+	tmp = getCube(glm::vec3(-0.875, 0.0, 0.0));
+	vertices.insert(vertices.end(), tmp.begin(), tmp.end());
+	tmp = getCube(glm::vec3(0.0, -0.875, 0.0));
+	vertices.insert(vertices.end(), tmp.begin(), tmp.end());
+	tmp = getCube(glm::vec3(0.0, 0.0, -0.875));
+	vertices.insert(vertices.end(), tmp.begin(), tmp.end());
+	tmp = getCube(glm::vec3(0.875, 0.875, 0.0));
+	vertices.insert(vertices.end(), tmp.begin(), tmp.end());
+	tmp = getCube(glm::vec3(0.0, 0.875, 0.875));
+	vertices.insert(vertices.end(), tmp.begin(), tmp.end());
+	tmp = getCube(glm::vec3(0.875, 0.0, 0.875));
+	vertices.insert(vertices.end(), tmp.begin(), tmp.end());
+	tmp = getCube(glm::vec3(-0.875, -0.875, 0.0));
+	vertices.insert(vertices.end(), tmp.begin(), tmp.end());
+	tmp = getCube(glm::vec3(0.0, -0.875, -0.875));
+	vertices.insert(vertices.end(), tmp.begin(), tmp.end());
+	tmp = getCube(glm::vec3(-0.875, 0.0, -0.875));
+	vertices.insert(vertices.end(), tmp.begin(), tmp.end());
+	tmp = getCube(glm::vec3(0.875, -0.875, 0.0));
+	vertices.insert(vertices.end(), tmp.begin(), tmp.end());
+	tmp = getCube(glm::vec3(-0.875, 0.875, 0.0));
+	vertices.insert(vertices.end(), tmp.begin(), tmp.end());
+	tmp = getCube(glm::vec3(0.0, 0.875, -0.875));
+	vertices.insert(vertices.end(), tmp.begin(), tmp.end());
+	tmp = getCube(glm::vec3(0.0, -0.875, 0.875));
+	vertices.insert(vertices.end(), tmp.begin(), tmp.end());
+	tmp = getCube(glm::vec3(0.875, 0.0, -0.875));
+	vertices.insert(vertices.end(), tmp.begin(), tmp.end());
+	tmp = getCube(glm::vec3(-0.875, 0.0, 0.875));
+	vertices.insert(vertices.end(), tmp.begin(), tmp.end());
+	tmp = getCube(glm::vec3(0.875, 0.875, 0.875));
+	vertices.insert(vertices.end(), tmp.begin(), tmp.end());
+	tmp = getCube(glm::vec3(-0.875, -0.875, -0.875));
+	vertices.insert(vertices.end(), tmp.begin(), tmp.end());
+	tmp = getCube(glm::vec3(0.875, 0.875, -0.875));
+	vertices.insert(vertices.end(), tmp.begin(), tmp.end());
+	tmp = getCube(glm::vec3(0.875, -0.875, 0.875));
+	vertices.insert(vertices.end(), tmp.begin(), tmp.end());
+	tmp = getCube(glm::vec3(0.875, -0.875, -0.875));
+	vertices.insert(vertices.end(), tmp.begin(), tmp.end());
+	tmp = getCube(glm::vec3(-0.875, 0.875, 0.875));
+	vertices.insert(vertices.end(), tmp.begin(), tmp.end());
+	tmp = getCube(glm::vec3(-0.875, 0.875, -0.875));
+	vertices.insert(vertices.end(), tmp.begin(), tmp.end());
+	tmp = getCube(glm::vec3(-0.875, -0.875, 0.875));
+	vertices.insert(vertices.end(), tmp.begin(), tmp.end());
+
+	std::vector<glm::vec3> tmpColor = getColorForCube(glm::vec3(1.0, 0.0, 0.0));
+	colors.insert(colors.end(), tmpColor.begin(), tmpColor.end());
+	tmpColor = getColorForCube(glm::vec3(1.0, 0.0, 0.0));
+	colors.insert(colors.end(), tmpColor.begin(), tmpColor.end());
+	tmpColor = getColorForCube(glm::vec3(0.0, 1.0, 0.0));
+	colors.insert(colors.end(), tmpColor.begin(), tmpColor.end());
+	tmpColor = getColorForCube(glm::vec3(0.0, 0.0, 1.0));
+	colors.insert(colors.end(), tmpColor.begin(), tmpColor.end());
+	tmpColor = getColorForCube(glm::vec3(1.0, 1.0, 0.0));
+	colors.insert(colors.end(), tmpColor.begin(), tmpColor.end());
+	tmpColor = getColorForCube(glm::vec3(1.0, 0.0, 1.0));
+	colors.insert(colors.end(), tmpColor.begin(), tmpColor.end());
+	tmpColor = getColorForCube(glm::vec3(0.0, 1.0, 1.0));
+	colors.insert(colors.end(), tmpColor.begin(), tmpColor.end());
+	tmpColor = getColorForCube(glm::vec3(1.0, 0.0, 0.0));
+	colors.insert(colors.end(), tmpColor.begin(), tmpColor.end());
+	tmpColor = getColorForCube(glm::vec3(0.0, 1.0, 0.0));
+	colors.insert(colors.end(), tmpColor.begin(), tmpColor.end());
+	tmpColor = getColorForCube(glm::vec3(0.0, 0.0, 1.0));
+	colors.insert(colors.end(), tmpColor.begin(), tmpColor.end());
+	tmpColor = getColorForCube(glm::vec3(1.0, 1.0, 0.0));
+	colors.insert(colors.end(), tmpColor.begin(), tmpColor.end());
+	tmpColor = getColorForCube(glm::vec3(1.0, 0.0, 1.0));
+	colors.insert(colors.end(), tmpColor.begin(), tmpColor.end());
+	tmpColor = getColorForCube(glm::vec3(0.0, 1.0, 1.0));
+	colors.insert(colors.end(), tmpColor.begin(), tmpColor.end());
+	tmpColor = getColorForCube(glm::vec3(1.0, 0.0, 0.0));
+	colors.insert(colors.end(), tmpColor.begin(), tmpColor.end());
+	tmpColor = getColorForCube(glm::vec3(0.0, 1.0, 0.0));
+	colors.insert(colors.end(), tmpColor.begin(), tmpColor.end());
+	tmpColor = getColorForCube(glm::vec3(0.0, 0.0, 1.0));
+	colors.insert(colors.end(), tmpColor.begin(), tmpColor.end());
+	tmpColor = getColorForCube(glm::vec3(1.0, 1.0, 0.0));
+	colors.insert(colors.end(), tmpColor.begin(), tmpColor.end());
+	tmpColor = getColorForCube(glm::vec3(1.0, 0.0, 1.0));
+	colors.insert(colors.end(), tmpColor.begin(), tmpColor.end());
+	tmpColor = getColorForCube(glm::vec3(0.0, 1.0, 1.0));
+	colors.insert(colors.end(), tmpColor.begin(), tmpColor.end());
+	tmpColor = getColorForCube(glm::vec3(1.0, 0.0, 0.0));
+	colors.insert(colors.end(), tmpColor.begin(), tmpColor.end());
+	tmpColor = getColorForCube(glm::vec3(0.0, 1.0, 0.0));
+	colors.insert(colors.end(), tmpColor.begin(), tmpColor.end());
+	tmpColor = getColorForCube(glm::vec3(0.0, 0.0, 1.0));
+	colors.insert(colors.end(), tmpColor.begin(), tmpColor.end());
+	tmpColor = getColorForCube(glm::vec3(1.0, 1.0, 0.0));
+	colors.insert(colors.end(), tmpColor.begin(), tmpColor.end());
+	tmpColor = getColorForCube(glm::vec3(1.0, 0.0, 1.0));
+	colors.insert(colors.end(), tmpColor.begin(), tmpColor.end());
+	tmpColor = getColorForCube(glm::vec3(0.0, 1.0, 1.0));
+	colors.insert(colors.end(), tmpColor.begin(), tmpColor.end());
+	tmpColor = getColorForCube(glm::vec3(1.0, 0.0, 1.0));
+	colors.insert(colors.end(), tmpColor.begin(), tmpColor.end());
+	tmpColor = getColorForCube(glm::vec3(0.0, 1.0, 1.0));
+	colors.insert(colors.end(), tmpColor.begin(), tmpColor.end());
 
 	GLuint vertexbuffer;
 	glGenBuffers(1, &vertexbuffer);
 	glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
 	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(glm::vec3), &vertices[0], GL_STATIC_DRAW);
 
-	GLuint uvbuffer;
-	glGenBuffers(1, &uvbuffer);
-	glBindBuffer(GL_ARRAY_BUFFER, uvbuffer);
-	glBufferData(GL_ARRAY_BUFFER, uvs.size() * sizeof(glm::vec2), &uvs[0], GL_STATIC_DRAW);
+	GLuint colorbuffer;
+	glGenBuffers(1, &colorbuffer);
+	glBindBuffer(GL_ARRAY_BUFFER, colorbuffer);
+	glBufferData(GL_ARRAY_BUFFER, colors.size() * sizeof(glm::vec3), &colors[0], GL_STATIC_DRAW);
 
-	GLuint normalbuffer;
-  glGenBuffers(1, &normalbuffer);
-  glBindBuffer(GL_ARRAY_BUFFER, normalbuffer);
-  glBufferData(GL_ARRAY_BUFFER, normals.size() * sizeof(glm::vec3), &normals[0], GL_STATIC_DRAW);
-
-	GLuint Texture = -1;
-	GLuint TextureID  = -1;
-	if (argc > 2) {
-		std::string path(argv[2]);
-		GLuint Texture = loadDDS("uvmap.DDS");
-		GLuint TextureID  = glGetUniformLocation(programID, "myTextureSampler");
-	}
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 	do {
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -111,17 +261,6 @@ int main(int argc, char* argv[])
 		glUniformMatrix4fv(ModelMatrixID, 1, GL_FALSE, &Model[0][0]);
 		glUniformMatrix4fv(ViewMatrixID, 1, GL_FALSE, &View[0][0]);
 
-		glm::vec3 lightPos = glm::vec3(4,4,4);
-		glUniform3f(LightID, lightPos.x, lightPos.y, lightPos.z);
-
-		// Bind our texture in Texture Unit 0
-		if (Texture != -1) {
-			glActiveTexture(GL_TEXTURE0);
-			glBindTexture(GL_TEXTURE_2D, Texture);
-			// Set our "myTextureSampler" sampler to user Texture Unit 0
-			glUniform1i(TextureID, 0);
-		}
-
 		// attribute buffer : vertices
 		glEnableVertexAttribArray(vertexPosition_modelspaceID);
 		glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
@@ -134,36 +273,22 @@ int main(int argc, char* argv[])
 			(void*)0            					// array buffer offset
 		);
 
-		// UVs
-		glEnableVertexAttribArray(vertexUVID);
-		glBindBuffer(GL_ARRAY_BUFFER, uvbuffer);
+		// attribute buffer : colors
+		glEnableVertexAttribArray(colorID);
+		glBindBuffer(GL_ARRAY_BUFFER, colorbuffer);
 		glVertexAttribPointer(
-			vertexUVID,                   // The attribute we want to configure
-			2,                            // size : U+V => 2
-			GL_FLOAT,                     // type
-			GL_FALSE,                     // normalized?
-			0,                            // stride
-			(void*)0                      // array buffer offset
-		);
-
-		// normals
-		glEnableVertexAttribArray(vertexNormal_modelspaceID);
-		glBindBuffer(GL_ARRAY_BUFFER, normalbuffer);
-		glVertexAttribPointer(
-			vertexNormal_modelspaceID,    // The attribute we want to configure
-			3,                            // size
-			GL_FLOAT,                     // type
-			GL_FALSE,                     // normalized?
-			0,                            // stride
-			(void*)0                      // array buffer offset
+			colorID, 	// The attribute we want to configure
+			3,                  					// size
+			GL_FLOAT,           					// type
+			GL_FALSE,           					// normalized?
+			0,														// stride
+			(void*)0            					// array buffer offset
 		);
 
 		// Draw the triangles
 		glDrawArrays(GL_TRIANGLES, 0, vertices.size());
 
 		glDisableVertexAttribArray(vertexPosition_modelspaceID);
-		glDisableVertexAttribArray(vertexUVID);
-		glDisableVertexAttribArray(vertexNormal_modelspaceID);
 
 		// Swap buffers
 		glfwSwapBuffers(window);
