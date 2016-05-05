@@ -72,6 +72,18 @@ std::vector<glm::vec3> getColorForCube(glm::vec3 color) {
 	return re;
 }
 
+std::vector<glm::vec3> swapCubes(std::vector<glm::vec3> v, int i, int j) {
+	int fst = i * 36;
+	int snd = j * 36;
+	for (int k = 0; k < 36; k++) {
+		glm::vec3 tmp = v[fst+k];
+		v[fst+k] = v[snd+k];
+		v[snd+k] = tmp;
+	}
+
+	return v;
+}
+
 int main(int argc, char* argv[])
 {
 	if(!glfwInit()) {
@@ -104,8 +116,8 @@ int main(int argc, char* argv[])
 	// Dark blue background
 	glClearColor(0.0f, 0.0f, 0.4f, 0.0f);
 
-	glEnable(GL_DEPTH_TEST);
-	glDepthFunc(GL_LESS);
+	//glEnable(GL_DEPTH_TEST);
+	//glDepthFunc(GL_LESS);
 
 	glEnable(GL_CULL_FACE); // ????????????????????????????????????????????????
 
@@ -256,6 +268,16 @@ int main(int argc, char* argv[])
 		glm::mat4 View       = getViewMatrix();
 		glm::mat4 Model      = glm::mat4(1.0f);
 		glm::mat4 MVP        = Projection * View * Model;
+
+		glm::vec3 cameraPos = getPosition();
+		for (int i = 0; i < 27; i++) {
+			for (int j = i+1; j < 27; j++) {
+				if (glm::distance(cameraPos, vertices[i*36]) < glm::distance(cameraPos, vertices[j*36])) {
+					vertices = swapCubes(vertices, i, j);
+					colors = swapCubes(colors, i, j);
+				}
+			}
+		}
 
 		glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &MVP[0][0]);
 		glUniformMatrix4fv(ModelMatrixID, 1, GL_FALSE, &Model[0][0]);

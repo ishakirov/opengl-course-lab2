@@ -11,6 +11,7 @@ extern GLFWwindow* window;
 
 glm::mat4 ViewMatrix;
 glm::mat4 ProjectionMatrix;
+glm::vec3 position(4,3,3);
 
 glm::mat4 getViewMatrix(){
 	return ViewMatrix;
@@ -19,13 +20,16 @@ glm::mat4 getProjectionMatrix(){
 	return ProjectionMatrix;
 }
 
+glm::vec3 getPosition() {
+	return position;
+}
+
 float mabs(float x) {
 	return x > 0 ? x : -x;
 }
 
 float speed = 3.0f; // 3 units / second
 float mouseSpeed = 0.005f;
-glm::vec3 position(4,3,3);
 double t = 0;
 double x_mouse_stored = 0.0, y_mouse_stored = 0.0;
 double horizontalAngle = 0, verticalAngle = 0;
